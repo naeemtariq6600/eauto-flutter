@@ -393,7 +393,7 @@ HTTP Error:
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    _buildSpinner(currentTheme.primaryColor),
+                                    _buildSpinner(widget.config.webview.loaderColor),
                                     if (_loadingProgress > 0 && _loadingProgress < 1.0) ...[
                                       const SizedBox(height: 16),
                                       Text(
@@ -401,7 +401,7 @@ HTTP Error:
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,
-                                          color: currentTheme.primaryColor,
+                                          color: widget.config.webview.loaderColor,
                                           letterSpacing: 0.5,
                                         ),
                                       ),
@@ -421,7 +421,9 @@ HTTP Error:
                       child: LinearProgressIndicator(
                         value: _loadingProgress,
                         backgroundColor: Colors.transparent,
-                        valueColor: AlwaysStoppedAnimation<Color>(currentTheme.primaryColor),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          widget.config.webview.loaderColor,
+                        ),
                         minHeight: 2.5,
                       ),
                     ),

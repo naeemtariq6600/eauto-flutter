@@ -1,4 +1,4 @@
-package com.eauto.app
+package com.nxp.eauto
 
 import io.flutter.embedding.android.FlutterActivity
 

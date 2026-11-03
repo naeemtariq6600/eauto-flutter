@@ -117,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _buildBrandLogo(primaryColor),
+                    _buildBrandLogo(),
                     _buildSkipButton(),
                   ],
                 ),
@@ -137,86 +137,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  /// Top Left Brand Logo (eAuto Dealer)
-  Widget _buildBrandLogo(Color primaryColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'assets/splash/logo.png',
-            height: 22,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => Icon(
-              Icons.directions_car_filled_rounded,
-              size: 22,
-              color: primaryColor,
-            ),
-          ),
-          const SizedBox(width: 6),
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: 'eAuto',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: primaryColor,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-                const TextSpan(
-                  text: 'Dealer',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                    letterSpacing: -0.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+  /// Top Left Brand Logo (eAuto Dealer icon)
+  Widget _buildBrandLogo() {
+    return Image.asset(
+      'assets/icon/app-icon.png',
+      height: 60,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (context, error, stackTrace) => const Icon(
+        Icons.directions_car_filled_rounded,
+        size: 50,
+        color: _buttonColor,
       ),
     );
   }
 
-  /// Blue gradient (dark blue on left to slightly lighter blue on right)
-  static const LinearGradient _buttonGradient = LinearGradient(
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-    colors: [
-      Color(0xFF0D47A1), // Dark blue on left
-      Color(0xFF388AF6), // Slightly lighter blue on right
-    ],
-  );
+  /// Brand button color #1f00a7
+  static const Color _buttonColor = Color(0xFF1F00A7);
 
-  /// Top Right "Skip >" Pill Button with Left-to-Right Gradient
+  /// Top Right "Skip >" Pill Button
   Widget _buildSkipButton() {
     return GestureDetector(
       onTap: _completeOnboarding,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          gradient: _buttonGradient,
+          color: _buttonColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF0D47A1).withValues(alpha: 0.3),
+              color: _buttonColor.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -402,8 +352,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     width: isActive ? 10 : 8,
                     height: isActive ? 10 : 8,
                     decoration: BoxDecoration(
-                      gradient: isActive ? _buttonGradient : null,
-                      color: isActive ? null : const Color(0xFFE2E8F0),
+                      color: isActive ? _buttonColor : const Color(0xFFE2E8F0),
                       shape: BoxShape.circle,
                     ),
                   );
@@ -412,16 +361,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
               const SizedBox(height: 22),
 
-              // Next / Get Started Action Button with Left-to-Right Blue Gradient
+              // Next / Get Started Action Button
               Container(
                 width: double.infinity,
                 height: 54,
                 decoration: BoxDecoration(
-                  gradient: _buttonGradient,
+                  color: _buttonColor,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0D47A1).withValues(alpha: 0.35),
+                      color: _buttonColor.withValues(alpha: 0.35),
                       blurRadius: 14,
                       offset: const Offset(0, 4),
                     ),

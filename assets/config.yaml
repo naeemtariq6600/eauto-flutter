@@ -3,7 +3,7 @@
 
 app:
   # The name of your application
-  name: "WebWrap Demo"
+  name: "eAuto Dealer"
 
   # The main website URL to load
 #  website_url: "https://flutter.dev"
@@ -62,7 +62,7 @@ theme:
   # Light theme colors
   light:
     # Primary color for the app
-    primary_color: "#2196F3"
+    primary_color: "#1f00a7"
 
     # Status bar color (Android)
     status_bar_color: "#1976D2"
@@ -134,6 +134,9 @@ webview:
 
   # Loader animation style: "three_bounce", "fading_circle", "circle", "pulse", "chasing_dots", "wave", "spinning_lines"
   loader_style: "three_bounce"
+
+  # Loader animation color in hex format
+  loader_color: "#1f00a7"
 
   # Custom user agent (null = use default)
   user_agent: null

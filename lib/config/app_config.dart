@@ -238,6 +238,7 @@ class WebViewConfig {
 
   final bool showLoader;
   final String loaderStyle;
+  final Color loaderColor;
 
   WebViewConfig({
     required this.enableJavascript,
@@ -250,6 +251,7 @@ class WebViewConfig {
     required this.allowInlineMediaPlayback,
     this.showLoader = true,
     this.loaderStyle = 'three_bounce',
+    this.loaderColor = const Color(0xFF1F00A7),
   });
 
   factory WebViewConfig.fromMap(Map<dynamic, dynamic> map) {
@@ -265,6 +267,10 @@ class WebViewConfig {
           map['allow_inline_media_playback'] as bool? ?? true,
       showLoader: map['show_loader'] as bool? ?? true,
       loaderStyle: map['loader_style']?.toString() ?? 'three_bounce',
+      loaderColor: _parseColor(
+        map['loader_color']?.toString(),
+        fallback: const Color(0xFF1F00A7),
+      ),
     );
   }
 }
