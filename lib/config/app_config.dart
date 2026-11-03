@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 /// Main application configuration model
@@ -333,28 +335,36 @@ class OnboardingConfig {
       titleHighlight: "eAuto Dealer",
       description:
           "Manage your dealership operations, inventory, sales, and reports from one smart app.",
-      image: "assets/onboarding/intro_1.jpg",
+      image: "assets/onboarding/android/welcome.jpg",
+      imageAndroid: "assets/onboarding/android/welcome.jpg",
+      imageIos: "assets/onboarding/ios/welcome.jpg",
     ),
     OnboardingScreenItem(
       titlePrefix: "Smart Inventory",
       titleHighlight: "Management",
       description:
           "Track your vehicle stock in real-time, update specifications, and showcase high-resolution car galleries.",
-      image: "assets/onboarding/intro_2.jpg",
+      image: "assets/onboarding/android/key-feature-1.jpg",
+      imageAndroid: "assets/onboarding/android/key-feature-1.jpg",
+      imageIos: "assets/onboarding/ios/key-feature-1.jpg",
     ),
     OnboardingScreenItem(
       titlePrefix: "Lead Tracking &",
       titleHighlight: "CRM Automation",
       description:
           "Capture buyer inquiries, schedule test drives, and close vehicle deals faster than ever.",
-      image: "assets/onboarding/intro_3.jpg",
+      image: "assets/onboarding/android/key-feature-2.jpg",
+      imageAndroid: "assets/onboarding/android/key-feature-2.jpg",
+      imageIos: "assets/onboarding/ios/key-feature-2.jpg",
     ),
     OnboardingScreenItem(
       titlePrefix: "Dealership Performance &",
       titleHighlight: "Analytics",
       description:
           "Gain complete visibility over sales figures, profit margins, and team performance with real-time reports.",
-      image: "assets/onboarding/intro_4.jpg",
+      image: "assets/onboarding/android/key-feature-3.jpg",
+      imageAndroid: "assets/onboarding/android/key-feature-3.jpg",
+      imageIos: "assets/onboarding/ios/key-feature-3.jpg",
     ),
   ];
 }
@@ -364,14 +374,49 @@ class OnboardingScreenItem {
   final String titlePrefix;
   final String titleHighlight;
   final String description;
-  final String image;
+  final String rawImage;
+  final String? imageAndroid;
+  final String? imageIos;
 
   OnboardingScreenItem({
     required this.titlePrefix,
     required this.titleHighlight,
     required this.description,
-    required this.image,
-  });
+    required String image,
+    this.imageAndroid,
+    this.imageIos,
+  }) : rawImage = image;
+
+  /// Returns the appropriate image path for the current platform
+  String get image => platformImage;
+
+  /// Resolves image asset dynamically based on device platform (Android vs iOS)
+  String get platformImage {
+    if (!kIsWeb) {
+      if (Platform.isIOS) {
+        if (imageIos != null && imageIos!.isNotEmpty) {
+          return imageIos!;
+        }
+        if (rawImage.contains('/android/')) {
+          return rawImage.replaceAll('/android/', '/ios/');
+        }
+        if (rawImage.startsWith('assets/onboarding/') && !rawImage.contains('/ios/')) {
+          return rawImage.replaceFirst('assets/onboarding/', 'assets/onboarding/ios/');
+        }
+      } else if (Platform.isAndroid) {
+        if (imageAndroid != null && imageAndroid!.isNotEmpty) {
+          return imageAndroid!;
+        }
+        if (rawImage.contains('/ios/')) {
+          return rawImage.replaceAll('/ios/', '/android/');
+        }
+        if (rawImage.startsWith('assets/onboarding/') && !rawImage.contains('/android/')) {
+          return rawImage.replaceFirst('assets/onboarding/', 'assets/onboarding/android/');
+        }
+      }
+    }
+    return imageAndroid ?? (rawImage.isNotEmpty ? rawImage : (imageIos ?? ''));
+  }
 
   factory OnboardingScreenItem.fromMap(Map<dynamic, dynamic> map) {
     return OnboardingScreenItem(
@@ -379,6 +424,8 @@ class OnboardingScreenItem {
       titleHighlight: map['title_highlight']?.toString() ?? '',
       description: map['description']?.toString() ?? '',
       image: map['image']?.toString() ?? '',
+      imageAndroid: map['image_android']?.toString(),
+      imageIos: map['image_ios']?.toString(),
     );
   }
 }

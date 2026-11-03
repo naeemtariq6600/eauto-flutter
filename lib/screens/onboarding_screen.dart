@@ -198,16 +198,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   /// Background Visual with Fallback
   Widget _buildVisualBackground(OnboardingScreenItem item, Color primaryColor) {
+    final assetPath = item.platformImage;
     return Stack(
       fit: StackFit.expand,
       children: [
         // Image with high quality rendering filter
         Image.asset(
-          item.image,
+          assetPath,
           fit: BoxFit.cover,
           alignment: Alignment.topCenter,
           filterQuality: FilterQuality.high,
           errorBuilder: (context, error, stackTrace) {
+            if (assetPath.contains('welcome.jpg')) {
+              final altPath = assetPath.replaceAll('welcome.jpg', 'welcom.jpg');
+              return Image.asset(
+                altPath,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) =>
+                    _buildFallbackVisual(item, primaryColor),
+              );
+            } else if (assetPath.contains('welcom.jpg')) {
+              final altPath = assetPath.replaceAll('welcom.jpg', 'welcome.jpg');
+              return Image.asset(
+                altPath,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) =>
+                    _buildFallbackVisual(item, primaryColor),
+              );
+            }
             return _buildFallbackVisual(item, primaryColor);
           },
         ),

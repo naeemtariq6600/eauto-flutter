@@ -37,22 +37,30 @@ onboarding:
     - title_prefix: "Welcome to"
       title_highlight: "eAuto Dealer"
       description: "Manage your dealership operations, inventory, sales, and reports from one smart app."
-      image: "assets/onboarding/intro_1.jpg"
+      image: "assets/onboarding/android/welcome.jpg"
+      image_android: "assets/onboarding/android/welcome.jpg"
+      image_ios: "assets/onboarding/ios/welcome.jpg"
 
     - title_prefix: "Smart Inventory"
       title_highlight: "Management"
       description: "Track your vehicle stock in real-time, update specifications, and showcase high-resolution car galleries."
-      image: "assets/onboarding/intro_2.jpg"
+      image: "assets/onboarding/android/key-feature-1.jpg"
+      image_android: "assets/onboarding/android/key-feature-1.jpg"
+      image_ios: "assets/onboarding/ios/key-feature-1.jpg"
 
     - title_prefix: "Lead Tracking &"
       title_highlight: "CRM Automation"
       description: "Capture buyer inquiries, schedule test drives, and close vehicle deals faster than ever."
-      image: "assets/onboarding/intro_3.jpg"
+      image: "assets/onboarding/android/key-feature-2.jpg"
+      image_android: "assets/onboarding/android/key-feature-2.jpg"
+      image_ios: "assets/onboarding/ios/key-feature-2.jpg"
 
     - title_prefix: "Dealership Performance &"
       title_highlight: "Analytics"
       description: "Gain complete visibility over sales figures, profit margins, and team performance with real-time reports."
-      image: "assets/onboarding/intro_4.jpg"
+      image: "assets/onboarding/android/key-feature-3.jpg"
+      image_android: "assets/onboarding/android/key-feature-3.jpg"
+      image_ios: "assets/onboarding/ios/key-feature-3.jpg"
 
 theme:
   # Dark mode configuration

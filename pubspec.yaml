@@ -88,9 +88,8 @@ flutter:
   assets:
     - assets/config.yaml
     - assets/splash/
-    - assets/onboarding/
-    - assets/onboarding/2.0x/
-    - assets/onboarding/3.0x/
+    - assets/onboarding/android/
+    - assets/onboarding/ios/
     - assets/icon/
 
   # An image asset can refer to one or more resolution-specific "variants", see
