@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,7 +10,10 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import '../config/app_config.dart';
 import '../services/connectivity_service.dart';
 import '../services/cache_service.dart';
+import '../services/pdf_download_service.dart';
 import '../services/url_interceptor_service.dart';
+import '../services/web_file_chooser.dart';
+import '../services/web_share_service.dart';
 
 /// Fullscreen WebView with gesture navigation
 class WebViewScreen extends StatefulWidget {
@@ -28,6 +33,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
   late final ConnectivityService _connectivityService;
   late final CacheService _cacheService;
   late final URLInterceptorService _urlInterceptorService;
+  late final PdfDownloadService _pdfDownloadService;
+  late final WebFileChooser _fileChooser;
+  late final WebShareService _webShareService;
 
   // Connectivity tracking
   bool? _previousConnectionState; // null = non ancora inizializzato
@@ -49,7 +57,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   void initState() {
     super.initState();
     _initializeServices();
-    _initializeWebView();
+    unawaited(_initializeWebView());
   }
 
   /// Initialize services
@@ -58,6 +66,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _cacheService = CacheService();
     _urlInterceptorService = URLInterceptorService(
       nativeUrlPrefixes: widget.config.nativeUrlHandlers,
+    );
+    _pdfDownloadService = PdfDownloadService(
+      controller: () => _webViewController,
+      onUpdate: _onPdfDownload,
+    );
+    _fileChooser = WebFileChooser(contextProvider: () => context);
+    _webShareService = WebShareService(
+      controller: () => _webViewController,
+      shareOrigin: _shareOrigin,
     );
 
     // Listen to connectivity changes
@@ -100,7 +117,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   }
 
   /// Initialize WebView
-  void _initializeWebView() {
+  Future<void> _initializeWebView() async {
     // Platform-specific parameters (best practice da documentazione ufficiale)
     late final PlatformWebViewControllerCreationParams params;
 
@@ -124,6 +141,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
     // Create controller with platform-specific params
     final WebViewController controller =
         WebViewController.fromPlatformCreationParams(params);
+    _webViewController = controller;
 
     // Platform-specific settings (best practice da documentazione ufficiale)
     if (controller.platform is AndroidWebViewController) {
@@ -131,122 +149,153 @@ class _WebViewScreenState extends State<WebViewScreen> {
       AndroidWebViewController.enableDebugging(kDebugMode);
 
       // Set media playback requirements
-      (controller.platform as AndroidWebViewController)
-          .setMediaPlaybackRequiresUserGesture(
+      final androidController =
+          controller.platform as AndroidWebViewController;
+      await androidController.setMediaPlaybackRequiresUserGesture(
         !widget.config.webview.allowMediaPlayback,
       );
     }
 
+    await _fileChooser.attach(controller);
+
     // Gestione cookie
     final cookieManager = WebViewCookieManager();
     if (widget.config.webview.clearCookiesOnStart) {
-      cookieManager.clearCookies();
+      await cookieManager.clearCookies();
     }
     // I cookie vengono automaticamente salvati e ripristinati tra le sessioni
 
-    // Configure WebView
-    controller
-      ..setJavaScriptMode(
-        widget.config.webview.enableJavascript
-            ? JavaScriptMode.unrestricted
-            : JavaScriptMode.disabled,
-      )
-      ..setBackgroundColor(Colors.white) // Best practice per performance
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onProgress: (int progress) {
-            if (mounted) {
-              setState(() {
-                _loadingProgress = progress / 100.0;
-                if (progress >= 100) {
-                  _isLoading = false;
-                  _isInitialLoad = false;
-                }
-              });
-            }
-          },
-          onPageStarted: (String url) {
-            if (mounted) {
-              setState(() {
-                _isLoading = true;
-                _loadingProgress = 0.0;
-              });
-            }
-            _cacheService.saveLastUrl(url);
-          },
-          onPageFinished: (String url) async {
+    await controller.setJavaScriptMode(
+      widget.config.webview.enableJavascript
+          ? JavaScriptMode.unrestricted
+          : JavaScriptMode.disabled,
+    );
+    await controller.setBackgroundColor(Colors.white);
+    await controller.setNavigationDelegate(
+      NavigationDelegate(
+        onProgress: (int progress) {
+          if (mounted) {
+            setState(() {
+              _loadingProgress = progress / 100.0;
+              if (progress >= 100) {
+                _isLoading = false;
+                _isInitialLoad = false;
+              }
+            });
+          }
+        },
+        onPageStarted: (String url) {
+          if (mounted) {
+            setState(() {
+              _isLoading = true;
+              _loadingProgress = 0.0;
+            });
+          }
+          _cacheService.saveLastUrl(url);
+          _pdfDownloadService.injectHook();
+          _pdfDownloadService.ensureAndroidDownloadListener();
+          _webShareService.injectHook();
+        },
+        onPageFinished: (String url) async {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _isInitialLoad = false;
+              _loadingProgress = 1.0;
+            });
+          }
+          _updateCanGoBack();
+          _pdfDownloadService.injectHook();
+          _pdfDownloadService.ensureAndroidDownloadListener();
+          _webShareService.injectHook();
+
+          // Salva pagina in cache con titolo
+          try {
+            final title =
+                await _webViewController.getTitle() ?? 'Pagina senza titolo';
+            _cacheService.cachePage(url, title);
+          } catch (e) {
+            // Silently fail
+          }
+        },
+        onWebResourceError: (WebResourceError error) {
+          // Filter per mostrare solo errori del frame principale
+          if (error.isForMainFrame ?? false) {
             if (mounted) {
               setState(() {
                 _isLoading = false;
                 _isInitialLoad = false;
-                _loadingProgress = 1.0;
               });
             }
-            _updateCanGoBack();
 
-            // Salva pagina in cache con titolo
-            try {
-              final title =
-                  await _webViewController.getTitle() ?? 'Pagina senza titolo';
-              _cacheService.cachePage(url, title);
-            } catch (e) {
-              // Silently fail
+            // Ignora errore -999 (NSURLErrorCancelled) su iOS
+            // Questo errore è normale quando la navigazione viene cancellata
+            if (error.errorCode == -999) {
+              return;
             }
-          },
-          onWebResourceError: (WebResourceError error) {
-            // Filter per mostrare solo errori del frame principale
-            if (error.isForMainFrame ?? false) {
-              if (mounted) {
-                setState(() {
-                  _isLoading = false;
-                  _isInitialLoad = false;
-                });
-              }
 
-              // Ignora errore -999 (NSURLErrorCancelled) su iOS
-              // Questo errore è normale quando la navigazione viene cancellata
-              if (error.errorCode == -999) {
-                return;
-              }
-
-              debugPrint('''
+            debugPrint('''
 WebView Resource Error (Main Frame):
   Code: ${error.errorCode}
   Description: ${error.description}
   Type: ${error.errorType}
   URL: ${error.url ?? 'unknown'}
-              ''');
-            }
-          },
-          onHttpError: (HttpResponseError error) {
-            debugPrint('''
+            ''');
+          }
+        },
+        onHttpError: (HttpResponseError error) {
+          debugPrint('''
 HTTP Error:
   Status Code: ${error.response?.statusCode}
   URL: ${error.response?.uri}
-              ''');
-          },
-          onNavigationRequest: (NavigationRequest request) {
-            // Intercept native URLs
-            return _urlInterceptorService.handleNavigationRequest(request.url);
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.config.app.websiteUrl));
+            ''');
+        },
+        onNavigationRequest: (NavigationRequest request) {
+          if (_webShareService.shouldInterceptNavigation(request.url)) {
+            _webShareService.shareFromUrl(request.url);
+            return NavigationDecision.prevent;
+          }
+          if (_pdfDownloadService.shouldInterceptNavigation(request.url)) {
+            _pdfDownloadService.handleNavigation(request.url);
+            return NavigationDecision.prevent;
+          }
+          return _urlInterceptorService.handleNavigationRequest(request.url);
+        },
+      ),
+    );
+    await controller.addJavaScriptChannel(
+      'PdfDownloader',
+      onMessageReceived: _pdfDownloadService.onJavaScriptMessage,
+    );
+    await controller.addJavaScriptChannel(
+      'WebShare',
+      onMessageReceived: _webShareService.onJavaScriptMessage,
+    );
 
     // Set user agent if specified
     if (widget.config.webview.userAgent != null) {
-      controller.setUserAgent(widget.config.webview.userAgent);
+      await controller.setUserAgent(widget.config.webview.userAgent);
     }
 
     // Clear cache if configured (sconsigliato per offline mode)
     if (widget.config.webview.clearCacheOnStart) {
-      _cacheService.clearCache(controller);
+      await _cacheService.clearCache(controller);
     } else {
       // Abilita caching per offline mode
-      _cacheService.enableWebViewCache(controller);
+      await _cacheService.enableWebViewCache(controller);
     }
 
-    _webViewController = controller;
+    if (!mounted) return;
+    await controller.loadRequest(Uri.parse(widget.config.app.websiteUrl));
+    _pdfDownloadService.ensureAndroidDownloadListener();
+  }
+
+  Rect _shareOrigin() {
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) {
+      return const Rect.fromLTWH(0, 0, 1, 1);
+    }
+    return box.localToGlobal(Offset.zero) & box.size;
   }
 
   /// Update can go back state
@@ -318,8 +367,40 @@ HTTP Error:
     });
   }
 
+  void _onPdfDownload(PdfDownloadUpdate update) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    if (update.notice == PdfDownloadNotice.dismiss) {
+      messenger.hideCurrentSnackBar();
+      return;
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(update.message ?? ''),
+          duration: update.notice == PdfDownloadNotice.progress
+              ? const Duration(minutes: 2)
+              : const Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
+          action: update.savedPath == null
+              ? null
+              : SnackBarAction(
+                  label: 'Open',
+                  onPressed: () {
+                    final path = update.savedPath;
+                    if (path != null) {
+                      _pdfDownloadService.openSaved(path);
+                    }
+                  },
+                ),
+        ),
+      );
+  }
+
   @override
   void dispose() {
+    _pdfDownloadService.dispose();
     _connectivityService.dispose();
     super.dispose();
   }
@@ -340,6 +421,9 @@ HTTP Error:
         statusBarBrightness: currentTheme.statusBarBrightness == Brightness.dark
             ? Brightness.light
             : Brightness.dark,
+        systemNavigationBarColor: currentTheme.backgroundColor,
+        systemNavigationBarIconBrightness: currentTheme.statusBarBrightness,
+        systemNavigationBarContrastEnforced: true,
       ),
     );
 
@@ -364,7 +448,6 @@ HTTP Error:
       child: Scaffold(
         backgroundColor: currentTheme.backgroundColor,
         body: SafeArea(
-          bottom: false, // Rimuove padding bianco in basso
           child: Listener(
             // iOS-style horizontal swipe to go back - NON blocca touch della WebView
             onPointerDown: _handlePointerDown,
